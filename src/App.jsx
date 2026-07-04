@@ -25,6 +25,7 @@ import CustomCursor from './components/ui/CustomCursor'; // ℹ️ Kursor kustom
 import SolidHitboxFix from './components/canvas/SolidHitboxFix';
 import VictoryScreen from './components/ui/VictoryScreen';
 import ACAnimator from './components/canvas/ACAnimator';
+import MediaWindow from './components/ui/MediaWindow';
 
 // Komponen untuk menampilkan persentase loading (Memenuhi PRD FR-01.2)
 function Loader() {
@@ -46,6 +47,7 @@ export default function App() {
     <div className="w-full h-full bg-background relative overflow-hidden">
       {/* UI 2D / HUD di luar Canvas */}
       <Navbar />
+      <MediaWindow />
       <InfoPanel />
       <SimulationControls />
       <RefrigerantLegend />

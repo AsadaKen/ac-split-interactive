@@ -104,6 +104,8 @@ export default function WashingController() {
       
       if (state.activeModule !== 'B' || !state.selectedUnit) return;
 
+      if (state.isSimulationRunning) return;
+
       const ray = updateRaycast(event);
       const activeList = getActiveList(state.selectedUnit);
       

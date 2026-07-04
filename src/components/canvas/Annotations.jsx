@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play } from 'lucide-react';
 import useACILMStore from '../../store/useACILMStore';
-import { INDOOR_COMPONENTS_LIST, OUTDOOR_COMPONENTS_LIST } from '../../data/washingProcedure';
 
 export default function Annotations() {
   const { scene } = useThree();
-  const { activeModule, isXRayActive, setFocusedComponent, setSelectedComponent } = useACILMStore();
+  const { activeModule, isXRayActive, focusedComponent, setFocusedComponent, setSelectedComponent, setActiveMedia } = useACILMStore();
   const [dots, setDots] = useState([]);
 
   useEffect(() => {
@@ -17,34 +18,40 @@ export default function Annotations() {
     }
 
     const timer = setTimeout(() => {
-      const allComponents = [...INDOOR_COMPONENTS_LIST, ...OUTDOOR_COMPONENTS_LIST];
       
-      // ℹ️ PERBAIKAN 1: Daftar komponen yang TIDAK boleh ada dot anotasinya (Casing dll)
-      const EXCLUDED_DOTS = [
-        'Indoor_Casing_Front', 
-        'Indoor_Casing',
-        'Outdoor_Casing',
-        'Outdoor_Casing_Body', 
-        'Outdoor_Casing_Top', 
-        'Outdoor_Casing_Front', 
-        'Outdoor_Casing_Side', 
-        'Outdoor_Cover_ACC',
-        'Visual_Plastik_Cover', 
-        'Plastik_Cover_PCB',
-        'Indoor_Filter_T'
+      // ==========================================
+      // ℹ️ PERBAIKAN: Gunakan Sistem WHITELIST (Daftar Izin)
+      // Tulis HANYA nama objek/komponen yang BOLEH memiliki Dot Anotasi.
+      // Selain dari daftar ini, dot otomatis tidak akan pernah muncul!
+      // ==========================================
+      const ALLOWED_DOTS = [
+        'Saringan_Blower',
+        'Indoor_Evaporator_Fins',
+        'Indoor_Filter_L',
+        'Indoor_Filter_R',
+        'Indoor_PCB',
+        'Outdoor_Condenser_Fins',
+        'Outdoor_Fan_Blade',
+        'Outdoor_Compressor',
+        'Outdoor_Expansion_Valve',
+        // 👇 TAMBAHKAN NAMA KOMPONEN LAIN YANG KAMU INGINKAN DI SINI:
+        
       ];
 
       const newDots = [];
 
       scene.traverse((child) => {
-        // ℹ️ PERBAIKAN 2: Hapus syarat "child.isMesh" agar Empty Object buatanmu kembali terbaca!
-        if (allComponents.includes(child.name) && !EXCLUDED_DOTS.includes(child.name)) {
+        // Hanya memproses objek yang namanya terdaftar di ALLOWED_DOTS
+        if (ALLOWED_DOTS.includes(child.name)) {
           
-          // Ambil titik koordinat ASLI dan presisi dari Empty Object Blender-mu
-          const targetPos = new THREE.Vector3();
-          child.getWorldPosition(targetPos);
+          // Cek Anti-Duplikasi: Mencegah 2 dot muncul untuk 1 nama komponen yang sama
+          const isAlreadyAdded = newDots.some(dot => dot.name === child.name);
           
-          newDots.push({ name: child.name, position: targetPos });
+          if (!isAlreadyAdded) {
+            const targetPos = new THREE.Vector3();
+            child.getWorldPosition(targetPos);
+            newDots.push({ name: child.name, position: targetPos });
+          }
         }
       });
 
@@ -58,20 +65,48 @@ export default function Annotations() {
 
   return (
     <group>
-      {dots.map((dot, idx) => (
-        <Html key={idx} position={dot.position} center zIndexRange={[10, 0]}>
-          <div 
-            className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-[0_0_10px_rgba(52,211,153,0.8)] cursor-pointer hover:scale-150 transition-transform relative flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              setFocusedComponent(dot.name);
-              setSelectedComponent(dot.name);
-            }}
-          >
-            <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75"></div>
-          </div>
-        </Html>
-      ))}
+      {dots.map((dot, idx) => {
+        const isActive = focusedComponent === dot.name;
+
+        return (
+          <Html key={idx} position={dot.position} center zIndexRange={[10, 0]}>
+            <div className="relative flex items-center justify-center">
+              
+              {/* Titik Anotasi Utama */}
+              <div 
+                className={`w-4 h-4 bg-primary rounded-full border-2 border-white shadow-[0_0_10px_rgba(52,211,153,0.8)] cursor-pointer transition-transform ${isActive ? 'scale-150' : 'hover:scale-150'}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFocusedComponent(dot.name);
+                  setSelectedComponent(dot.name);
+                }}
+              >
+                <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75"></div>
+              </div>
+
+              {/* Tombol Play yang muncul di samping dot saat ditekan */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.button
+                    initial={{ opacity: 0, x: -10, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 20, scale: 1 }}
+                    exit={{ opacity: 0, x: -10, scale: 0.8 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMedia(dot.name); 
+                    }}
+                    className="absolute left-full flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md border border-primary text-primary rounded-lg shadow-[0_0_15px_rgba(52,211,153,0.3)] hover:bg-primary hover:text-slate-900 transition-colors whitespace-nowrap z-50 pointer-events-auto"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span className="text-[10px] font-bold tracking-wide">Putar Animasi</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+
+            </div>
+          </Html>
+        );
+      })}
     </group>
   );
 }

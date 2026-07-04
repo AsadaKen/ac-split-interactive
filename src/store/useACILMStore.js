@@ -34,6 +34,9 @@ const useACILMStore = create((set) => ({
   focusedComponent: null, 
   setFocusedComponent: (componentName) => set({ focusedComponent: componentName }),
 
+  activeMedia: null,
+  setActiveMedia: (componentName) => set({ activeMedia: componentName }),
+
   // ==========================================
   // STATE MODUL B (Game Perawatan)
   // ==========================================

@@ -2,51 +2,59 @@ import React, { useState, useEffect } from 'react';
 import useACILMStore from '../../store/useACILMStore';
 import { INDOOR_STEPS, OUTDOOR_STEPS } from '../../data/washingProcedure';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight, Info, BookOpen, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Info, BookOpen, X, Power, AlertTriangle } from 'lucide-react';
 
 export default function GuideWindow() {
-  const { activeModule, selectedUnit, currentStepIndex, setCurrentStepIndex, activeHint } = useACILMStore();
+  // ℹ️ PERBAIKAN: Ambil status isSimulationRunning dari store
+  const { activeModule, selectedUnit, currentStepIndex, setCurrentStepIndex, activeHint, isSimulationRunning } = useACILMStore();
   
-  // ℹ️ State untuk mengontrol apakah panduan terbuka penuh atau mengecil jadi ikon
   const [isOpen, setIsOpen] = useState(true);
 
   const activeSteps = selectedUnit === 'indoor' ? INDOOR_STEPS : OUTDOOR_STEPS;
   const currentStep = activeSteps?.[currentStepIndex];
   const isFinished = currentStepIndex >= activeSteps?.length;
 
-  // 1. EFEK OTOMATIS BUKA: Jika pemain lanjut ke langkah (step) baru, paksa buka panduan
-  useEffect(() => {
-    setIsOpen(true);
-  }, [currentStepIndex]);
+  useEffect(() => { setIsOpen(true); }, [currentStepIndex]);
 
-  // 2. EFEK TIMER 15 DETIK: Menyembunyikan panduan menjadi ikon
   useEffect(() => {
     let timer;
-    if (isOpen && !isFinished) {
-      timer = setTimeout(() => {
-        setIsOpen(false);
-      }, 15000); // 15000 milidetik = 15 Detik
+    if (isOpen && !isFinished && !isSimulationRunning) {
+      timer = setTimeout(() => { setIsOpen(false); }, 15000);
     }
-    // Bersihkan timer jika komponen ditutup manual sebelum 15 detik agar tidak error
     return () => clearTimeout(timer);
-  }, [isOpen, currentStepIndex, isFinished]);
+  }, [isOpen, currentStepIndex, isFinished, isSimulationRunning]);
 
-  // Sembunyikan sepenuhnya jika tidak di Modul B
   if (activeModule !== 'B' || !selectedUnit) return null;
+
+  // ==========================================
+  // ℹ️ LOGIKA K3: Jika AC Menyala, Tampilkan Peringatan & Sembunyikan Panduan!
+  // ==========================================
+  if (isSimulationRunning) {
+    return (
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 24, opacity: 1 }}
+        className="absolute top-6 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur-md border-2 border-red-400 rounded-2xl p-4 flex items-center gap-4 shadow-[0_0_30px_rgba(239,68,68,0.8)] z-[100] pointer-events-auto"
+      >
+        <div className="bg-white/20 p-2 rounded-full animate-pulse">
+          <AlertTriangle className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-white font-bold text-sm uppercase tracking-wider">Peringatan Keselamatan!</span>
+          <span className="text-red-100 text-xs mt-0.5">AC masih menyala. Matikan AC melalui tombol Power sebelum memulai perawatan.</span>
+        </div>
+      </motion.div>
+    );
+  }
 
   const handleSkip = () => {
     if (!isFinished) setCurrentStepIndex(currentStepIndex + 1);
   };
 
   return (
-    // ℹ️ Wadah utama berada di kanan atas, dengan alignment ke kanan (items-end)
     <div className="absolute top-24 right-6 z-40 flex flex-col items-end pointer-events-none">
       <AnimatePresence mode="wait">
-        
         {isOpen ? (
-          // ==========================================
-          // MODE 1: JENDELA PANDUAN PENUH (TERBUKA)
-          // ==========================================
           <motion.div 
             key="guide-window"
             initial={{ opacity: 0, x: 50, scale: 0.9 }}
@@ -55,11 +63,9 @@ export default function GuideWindow() {
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className="w-72 bg-surface/95 backdrop-blur-md border border-slate-700 rounded-2xl p-3 flex flex-col gap-2 shadow-level-2 pointer-events-auto relative overflow-hidden"
           >
-            {/* Tombol Tutup Manual (Bagi pemain yang tidak ingin menunggu 15 detik) */}
             <button 
               onClick={() => setIsOpen(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors z-10"
-              title="Tutup Panduan"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -83,7 +89,6 @@ export default function GuideWindow() {
                     <ChevronRight className="w-2.5 h-2.5 text-cyan-400 mt-0.5 shrink-0" />
                     <span>{activeHint}</span>
                   </p>
-                  {/* Visual Indikator Timer 15 Detik (Garis menyusut di bawah hint) */}
                   <motion.div 
                     initial={{ width: "100%" }}
                     animate={{ width: "0%" }}
@@ -108,9 +113,6 @@ export default function GuideWindow() {
             )}
           </motion.div>
         ) : (
-          // ==========================================
-          // MODE 2: IKON PANDUAN (TERTUTUP)
-          // ==========================================
           <motion.button
             key="guide-icon"
             initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
@@ -120,7 +122,6 @@ export default function GuideWindow() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
             className="flex items-center gap-2 p-2.5 pr-4 bg-surface/90 backdrop-blur-md border border-slate-700 rounded-2xl shadow-level-2 pointer-events-auto text-cyan-400 hover:text-primary hover:border-primary transition-colors group"
-            title="Buka Panduan"
           >
             <div className="bg-slate-800 p-1.5 rounded-xl group-hover:bg-primary/10 transition-colors">
               <BookOpen className="w-5 h-5" />

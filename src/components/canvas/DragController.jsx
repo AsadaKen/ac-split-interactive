@@ -33,6 +33,8 @@ export default function DragController() {
       // ℹ️ PERBAIKAN BUG 1: Izinkan drag HANYA jika sedang memakai 'tool_hand'
       if (useACILMStore.getState().selectedTool !== 'tool_hand') return;
 
+      if (useACILMStore.getState().isSimulationRunning) return;
+
       const rect = gl.domElement.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;

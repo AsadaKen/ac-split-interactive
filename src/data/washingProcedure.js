@@ -13,7 +13,7 @@ export const TOOLS = [
 export const INDOOR_COMPONENTS_LIST = [
   'Indoor_Casing_Front', 'Indoor_Casing_Filter', 'Indoor_Casing_Body', 
   'Indoor_Evaporator_Fins', 'Saringan_Blower', 
-  'Indoor_Filter_L', 'Indoor_Filter_R', 'Indoor_Filter_T',
+  'Indoor_Filter_L', 'Indoor_Filter_R', 'Indoor_Filter_T','Indoor_PCB',
   'Plastik_Cover_PCB' // ℹ️ Komponen Baru Ditambahkan
 ];
 
@@ -131,7 +131,7 @@ export const INDOOR_STEPS = [
     label: 'Lindungi Modul PCB',
     description: 'Gunakan Plastik Penutup untuk mengamankan komponen kelistrikan PCB dari air.',
     requiredTool: 'tool_plastic_cover',
-    targetComponents: ['Indoor_Evaporator_Fins'], // Sebagai target klik
+    targetComponents: ['Indoor_PCB'], // Sebagai target klik
     actionType: 'install',
     completionModifier: 'plastic_cover_pcb', // ℹ️ Modifier baru untuk dummy PCB
     isMandatory: true,
@@ -146,7 +146,16 @@ export const INDOOR_STEPS = [
     isMandatory: true,
   },
   {
-    stepId: 'in_step_09_blower',
+    stepId: 'in_step_09_evap',
+    label: 'Lepas Evaporator Indoor',
+    description: 'Drag dan taruh Evaporator Indoor ke Hotbar.',
+    requiredTool: 'tool_hand',
+    targetComponents: ['Indoor_Evaporator_Fins'],
+    actionType: 'detach',
+    isMandatory: true,
+  },
+  {
+    stepId: 'in_step_10_blower',
     label: 'Bersihkan Blower',
     description: 'Gunakan Mesin Steam untuk merontokkan kerak pada kipas blower.',
     requiredTool: 'tool_water_spray',
@@ -155,17 +164,26 @@ export const INDOOR_STEPS = [
     isMandatory: true,
   },
   {
-    stepId: 'in_step_10_removepcb',
+    stepId: 'in_step_11_removepcb',
     label: 'Lepas Cover PCB',
     description: 'Klik untuk melepaskan plastik pelindung dari modul PCB.',
     requiredTool: 'tool_hand',
-    targetComponents: ['Indoor_Evaporator_Fins'],
+    targetComponents: ['Indoor_PCB'],
     actionType: 'remove_modifier',
     completionModifier: 'plastic_cover_pcb',
     isMandatory: true,
   },
   {
-    stepId: 'in_step_11_attach',
+    stepId: 'in_step_12_evap',
+    label: 'Pasang Kembali Evaporator Indoor',
+    description: 'Klik komponen Evaporator Indoor di Hotbar untuk memasangnya kembali.',
+    requiredTool: 'tool_hand',
+    targetComponents: ['Indoor_Evaporator_Fins'],
+    actionType: 'attach',
+    isMandatory: true,
+  },
+  {
+    stepId: 'in_step_13_attach',
     label: 'Pasang Casing & Penyangga',
     description: 'Klik komponen Casing Body dan Casing Filter di Hotbar untuk memasangnya kembali.',
     requiredTool: 'tool_hand',
@@ -174,7 +192,7 @@ export const INDOOR_STEPS = [
     isMandatory: true,
   },
   {
-    stepId: 'in_step_12_attach',
+    stepId: 'in_step_14_attach',
     label: 'Pasang Semua Filter',
     description: 'Klik ketiga Filter (Kiri, Kanan, Atas) di Hotbar untuk memasangnya.',
     requiredTool: 'tool_hand',
@@ -183,7 +201,7 @@ export const INDOOR_STEPS = [
     isMandatory: true,
   },
   {
-    stepId: 'in_step_13_attach',
+    stepId: 'in_step_15_attach',
     label: 'Pasang Casing Depan',
     description: 'Klik Casing Depan di Hotbar untuk menyelesaikan perakitan.',
     requiredTool: 'tool_hand',
