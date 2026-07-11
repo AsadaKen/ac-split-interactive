@@ -10,8 +10,6 @@ export default function MediaWindow() {
 
   if (!activeMedia) return null;
 
-  // ℹ️ PENCARIAN FILE OTOMATIS: 
-  // Pastikan kamu menyimpan file media-nya di folder public/media/
   const videoUrl = `/media/videos/${activeMedia}.mp4`;
   const audioUrl = `/media/audios/${activeMedia}.mp3`;
 
@@ -19,18 +17,16 @@ export default function MediaWindow() {
     <AnimatePresence>
       {activeMedia && (
         <motion.div
-          // ℹ️ FITUR DRAG (GESER) dari Framer Motion
           drag
           dragMomentum={false}
-          // Membatasi agar jendela tidak bisa diseret keluar jauh dari layar
           dragConstraints={{ left: 0, right: window.innerWidth - 350, top: 0, bottom: window.innerHeight - 250 }}
           initial={{ opacity: 0, scale: 0.8, x: window.innerWidth / 2 - 200, y: 100 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          // ℹ️ FITUR RESIZE (UBAH UKURAN): Menggunakan kelas "resize" dan "overflow-hidden"
+          // Ukuran default jendela
           className="fixed z-[999] flex flex-col bg-surface/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] pointer-events-auto resize overflow-hidden min-w-[300px] min-h-[200px] w-[400px] h-[300px]"
         >
-          {/* Header (Gagang untuk menggeser jendela) */}
+          {/* Header (Gagang Jendela) */}
           <div
             className="flex items-center justify-between p-2 bg-slate-800 border-b border-slate-700 cursor-move"
             title="Tahan dan geser jendela"
@@ -51,19 +47,22 @@ export default function MediaWindow() {
           </div>
 
           {/* Area Konten Media */}
-          <div className="relative flex-1 bg-black flex items-center justify-center p-2">
-            {/* Video Animasi (Visual saja, di-mute agar tidak bentrok dengan audio terpisah) */}
+          <div className="relative flex-1 bg-black flex items-center justify-center p-0"> 
+            
+            {/* ℹ️ PERBAIKAN: object-cover, preload="auto", dan playsInline */}
             <video
               ref={videoRef}
               src={videoUrl}
               autoPlay
               loop
               muted
-              className="w-full h-full object-contain rounded-md relative z-10"
+              playsInline
+              preload="auto"
+              // Padding dihilangkan, object-contain diganti menjadi object-cover
+              className="w-full h-full object-cover relative z-10"
               onError={(e) => e.target.style.display = 'none'}
             />
             
-            {/* Audio Terpisah */}
             <audio
               ref={audioRef}
               src={audioUrl}

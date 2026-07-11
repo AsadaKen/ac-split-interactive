@@ -26,6 +26,7 @@ import SolidHitboxFix from './components/canvas/SolidHitboxFix';
 import VictoryScreen from './components/ui/VictoryScreen';
 import ACAnimator from './components/canvas/ACAnimator';
 import MediaWindow from './components/ui/MediaWindow';
+import RefrigerantFlow from './components/canvas/RefrigerantFlow';
 
 // Komponen untuk menampilkan persentase loading (Memenuhi PRD FR-01.2)
 function Loader() {
@@ -84,6 +85,7 @@ export default function App() {
           <Annotations />
           <ParticleSystem />
           <ACAnimator />
+          <RefrigerantFlow />
         </Suspense>
       </Canvas>
     </div>

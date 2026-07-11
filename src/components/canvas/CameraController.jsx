@@ -30,14 +30,18 @@ export default function CameraController() {
 
     // Logika Modul A: Klik komponen individual dari Dot Anotasi
     if (activeModule === 'A' && selectedComponent) {
-      // ℹ️ Tambahkan Saringan_Blower agar dikenali sebagai grup Indoor
-      const isIndoor = selectedComponent.includes('Indoor') || selectedComponent === 'Saringan_Blower';
-      posName = isIndoor ? 'cam_indoor_pos' : 'cam_outdoor_pos';
       
-      // ℹ️ FIX: Di Modul A, kita arahkan pandangan LANGSUNG menatap ke objek yang diklik!
-      // (Bukan ke 'cam_indoor_target' agar pandangan tidak terpaku di tengah AC)
-      targetName = selectedComponent; 
-    } 
+      // ℹ️ PERBAIKAN: Deteksi jika yang diklik adalah Pipa
+      if (selectedComponent.includes('DotPipa')) {
+        posName = 'cam_pipe_pos';
+        targetName = 'cam_pipe_target';
+      } else {
+        const isIndoor = selectedComponent.includes('Indoor') || selectedComponent === 'Saringan_Blower';
+        posName = isIndoor ? 'cam_indoor_pos' : 'cam_outdoor_pos';
+        targetName = selectedComponent; 
+      }
+      
+    }
     // Logika Modul B: Memilih unit di awal game (Mode Cuci)
     else if (activeModule === 'B' && selectedUnit) {
       posName = selectedUnit === 'indoor' ? 'cam_indoor_pos' : 'cam_outdoor_pos';
