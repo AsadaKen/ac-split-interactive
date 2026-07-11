@@ -120,10 +120,10 @@ export default function RefrigerantFlow() {
   };
 
   const temperatures = {
-    'Suhu_Indoor_In': '12°C',
-    'Suhu_Indoor_Out': '18°C',
-    'Suhu_Outdoor_In': '80°C',
-    'Suhu_Outdoor_Out': '40°C',
+    'Suhu_Indoor_In': 'Tahap Ekspansi: 12°C',
+    'Suhu_Indoor_Out': 'Tahap Kondensasi: 18°C',
+    'Suhu_Outdoor_In': 'Tahap Kompresi: 80°C',
+    'Suhu_Outdoor_Out': 'Tahap Evaporasi: 40°C',
   };
 
   const ARROWS_PER_PIPE = 6;
