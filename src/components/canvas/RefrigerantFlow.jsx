@@ -113,10 +113,10 @@ export default function RefrigerantFlow() {
   if (activeModule !== 'A' || !isSimulationRunning || !isReady) return null;
 
   const pipeColors = {
-    Kompresi: 0xef4444,   
-    Kondensasi: 0xf97316, 
-    Ekspansi: 0x1d4ed8,   
-    Evaporasi: 0x38bdf8   
+    Kompresi: 0xff1111,   // Merah Neon (Gas Panas Tekanan Tinggi)
+    Kondensasi: 0xff8800, // Oranye Terang (Cair Panas)
+    Ekspansi: 0x0044ff,   // Biru Elektrik (Cair Dingin Tekanan Rendah)
+    Evaporasi: 0x00ffff
   };
 
   const temperatures = {
