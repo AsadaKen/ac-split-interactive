@@ -5,7 +5,6 @@ import useACILMStore from '../../store/useACILMStore';
 
 // =====================================================================
 // 📍 PUSAT PENGATURAN MEDIA (MANUAL MAPPING)
-// Semua komponen yang memiliki Dot Anotasi telah didaftarkan di sini.
 // =====================================================================
 const MEDIA_MAP = {
   // --- KOMPONEN INDOOR ---
@@ -52,43 +51,62 @@ const MEDIA_MAP = {
 export default function MediaWindow() {
   const { activeMedia, setActiveMedia } = useACILMStore();
   const videoRef = useRef(null);
-  const audioRef = useRef(null);
+  
+  // ℹ️ PERBAIKAN 1: Kita menggunakan Ref murni untuk Audio, bukan tag HTML lagi
+  const audioEngineRef = useRef(null); 
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
-    // Hanya jalankan jika ada activeMedia DAN media tersebut terdaftar di MEDIA_MAP
     if (activeMedia && MEDIA_MAP[activeMedia]) {
       setIsFinished(false);
       
-      // Hentikan paksa apapun yang mungkin masih berjalan di background
+      // Bersihkan dan reset video
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
       }
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+
+      // HANCURKAN audio lama dari memori jika masih ada
+      if (audioEngineRef.current) {
+        audioEngineRef.current.pause();
+        audioEngineRef.current.src = "";
+        audioEngineRef.current = null;
       }
 
-      // Mainkan media dengan delay singkat agar DOM (tampilan web) siap
-      const playTimer = setTimeout(() => {
-        if (videoRef.current) videoRef.current.play().catch(e => console.log("Video Play Error:", e));
-        if (audioRef.current) audioRef.current.play().catch(e => console.log("Audio Play Error:", e));
-      }, 100);
+      // ℹ️ PERBAIKAN 2: Menciptakan Audio murni berbasis JavaScript
+      const newAudio = new Audio(MEDIA_MAP[activeMedia].audio);
+      
+      // Saat audio selesai, beritahu React untuk memunculkan tombol Replay
+      newAudio.onended = () => {
+        if (videoRef.current) videoRef.current.pause();
+        setIsFinished(true);
+      };
+      
+      // Simpan ke dalam Ref
+      audioEngineRef.current = newAudio;
 
-      // CLEANUP SUPER KETAT: Membunuh media dari memori saat komponen ditutup/diganti
+      // Mainkan media secara bersamaan
+      const playTimer = setTimeout(() => {
+        if (videoRef.current) videoRef.current.play().catch(e => console.log("Video Error:", e));
+        if (audioEngineRef.current) audioEngineRef.current.play().catch(e => console.log("Audio Error:", e));
+      }, 150);
+
+      // ℹ️ CLEANUP 100% AMAN
       return () => {
         clearTimeout(playTimer);
         
+        // Matikan Video
         if (videoRef.current) {
           videoRef.current.pause();
           videoRef.current.removeAttribute('src'); 
           videoRef.current.load(); 
         }
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.removeAttribute('src'); 
-          audioRef.current.load(); 
+        
+        // Binasakan Audio Engine dari memori Browser
+        if (audioEngineRef.current) {
+          audioEngineRef.current.pause();
+          audioEngineRef.current.src = ""; 
+          audioEngineRef.current = null;
         }
       };
     }
@@ -96,25 +114,21 @@ export default function MediaWindow() {
 
   if (!activeMedia) return null;
 
-  // Mengambil data media dari kamus manual
   const mediaSource = MEDIA_MAP[activeMedia];
-
-  const handleAudioEnd = () => {
-    if (videoRef.current) {
-      videoRef.current.pause(); 
-    }
-    setIsFinished(true); 
-  };
 
   const handleReplay = () => {
     setIsFinished(false);
+    
+    // Ulang Video
     if (videoRef.current) {
       videoRef.current.currentTime = 0; 
       videoRef.current.play();
     }
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0; 
-      audioRef.current.play();
+    
+    // Ulang Audio Engine
+    if (audioEngineRef.current) {
+      audioEngineRef.current.currentTime = 0; 
+      audioEngineRef.current.play();
     }
   };
 
@@ -122,6 +136,8 @@ export default function MediaWindow() {
     <AnimatePresence>
       {activeMedia && (
         <motion.div
+          // ℹ️ PERBAIKAN 3: Menambahkan 'key' agar Framer Motion tidak menggandakan jendela saat di-spam klik
+          key="media-modal-window" 
           drag
           dragMomentum={false}
           dragConstraints={{ left: 0, right: window.innerWidth - 350, top: 0, bottom: window.innerHeight - 250 }}
@@ -131,9 +147,7 @@ export default function MediaWindow() {
           className="fixed z-[999] flex flex-col bg-surface/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] pointer-events-auto resize overflow-hidden min-w-[300px] min-h-[200px] w-[400px] h-[300px]"
         >
           {/* Header */}
-          <div
-            className="flex items-center justify-between p-2 bg-slate-800 border-b border-slate-700 cursor-move"
-          >
+          <div className="flex items-center justify-between p-2 bg-slate-800 border-b border-slate-700 cursor-move">
             <div className="flex items-center gap-2 text-slate-200">
               <Move className="w-4 h-4 text-slate-400" />
               <PlayCircle className="w-4 h-4 text-primary" />
@@ -152,7 +166,6 @@ export default function MediaWindow() {
           {/* Area Konten Media */}
           <div className="relative flex-1 bg-black flex items-center justify-center p-0"> 
             
-            {/* JIKA KOMPONEN BELUM DIDAFTARKAN DI MEDIA_MAP */}
             {!mediaSource ? (
               <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-900 w-full h-full">
                 <AlertCircle className="w-10 h-10 text-amber-500 mb-3" />
@@ -163,9 +176,10 @@ export default function MediaWindow() {
                 </p>
               </div>
             ) : (
-              // JIKA KOMPONEN SUDAH TERDAFTAR
               <>
                 <video
+                  // ℹ️ PERBAIKAN 4: Menambahkan key dinamis agar video dipaksa direfresh oleh React
+                  key={`video-${activeMedia}`} 
                   ref={videoRef}
                   src={mediaSource.video}
                   loop 
@@ -174,12 +188,10 @@ export default function MediaWindow() {
                   className={`w-full h-full object-cover relative z-10 transition-opacity duration-300 ${isFinished ? 'opacity-30' : 'opacity-100'}`}
                 />
                 
-                <audio
-                  ref={audioRef}
-                  src={mediaSource.audio}
-                  onEnded={handleAudioEnd} 
-                  className="hidden"
-                />
+                {/* 
+                  ℹ️ PERBAIKAN 5: Tag <audio> KITA HAPUS SEPENUHNYA DARI SINI!
+                  Karena sekarang audionya diurus oleh JavaScript di latar belakang.
+                */}
 
                 <AnimatePresence>
                   {isFinished && (
