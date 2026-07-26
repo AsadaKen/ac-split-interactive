@@ -7,34 +7,32 @@ export default function MediaWindow() {
   const { activeMedia, setActiveMedia } = useACILMStore();
   const videoRef = useRef(null);
   const audioRef = useRef(null);
-  
   const [isFinished, setIsFinished] = useState(false);
 
-  // ℹ️ PERBAIKAN BUG AUDIO: Mengontrol pemutaran audio secara manual
+  // ℹ️ PERBAIKAN UTAMA: Mengontrol Media Play & Pause secara manual melalui useEffect
   useEffect(() => {
-    setIsFinished(false);
+    if (activeMedia) {
+      setIsFinished(false);
+      
+      // Memutar media secara manual dengan delay kecil untuk mencegah bentrok
+      const playTimer = setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play().catch(e => console.log("Video Play Error:", e));
+        }
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(e => console.log("Audio Play Error:", e));
+        }
+      }, 50);
 
-    if (activeMedia && audioRef.current) {
-      audioRef.current.currentTime = 0;
-      
-      // Memutar audio menggunakan JavaScript (Mencegah pemutaran ganda)
-      const playPromise = audioRef.current.play();
-      
-      // Menangkap error jika browser memblokir autoplay sebelum user berinteraksi
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.warn("Autoplay audio tertunda:", error);
-        });
-      }
+      // CLEANUP: Mematikan paksa media jika jendela ditutup atau komponen berganti
+      return () => {
+        clearTimeout(playTimer);
+        if (videoRef.current) videoRef.current.pause();
+        if (audioRef.current) audioRef.current.pause();
+      };
     }
-
-    // CLEANUP: Mematikan audio secara paksa saat jendela ditutup
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    };
   }, [activeMedia]);
 
   if (!activeMedia) return null;
@@ -73,7 +71,6 @@ export default function MediaWindow() {
           exit={{ opacity: 0, scale: 0.8 }}
           className="fixed z-[999] flex flex-col bg-surface/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] pointer-events-auto resize overflow-hidden min-w-[300px] min-h-[200px] w-[400px] h-[300px]"
         >
-          {/* Header */}
           <div
             className="flex items-center justify-between p-2 bg-slate-800 border-b border-slate-700 cursor-move"
             title="Tahan dan geser jendela"
@@ -93,13 +90,12 @@ export default function MediaWindow() {
             </button>
           </div>
 
-          {/* Area Konten Media */}
           <div className="relative flex-1 bg-black flex items-center justify-center p-0"> 
             
+            {/* ℹ️ PERBAIKAN: Atribut autoPlay DIHAPUS dari Video dan Audio */}
             <video
               ref={videoRef}
               src={videoUrl}
-              autoPlay
               loop 
               muted
               playsInline
@@ -108,7 +104,6 @@ export default function MediaWindow() {
               onError={(e) => e.target.style.display = 'none'}
             />
             
-            {/* ℹ️ PERBAIKAN: Atribut autoPlay DIHAPUS dari tag audio */}
             <audio
               ref={audioRef}
               src={audioUrl}
@@ -116,7 +111,6 @@ export default function MediaWindow() {
               className="hidden"
             />
 
-            {/* Tombol Putar Ulang */}
             <AnimatePresence>
               {isFinished && (
                 <motion.button
@@ -132,7 +126,6 @@ export default function MediaWindow() {
               )}
             </AnimatePresence>
 
-            {/* Pesan Bantuan */}
             <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-slate-600 text-[10px] text-center px-4">
               <PlayCircle className="w-8 h-8 mb-2 opacity-20" />
               Menunggu Media...<br/>
