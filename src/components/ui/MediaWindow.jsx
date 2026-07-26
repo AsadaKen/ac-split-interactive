@@ -9,30 +9,54 @@ export default function MediaWindow() {
   const audioRef = useRef(null);
   const [isFinished, setIsFinished] = useState(false);
 
-  // ℹ️ PERBAIKAN UTAMA: Mengontrol Media Play & Pause secara manual melalui useEffect
+  // ℹ️ PERBAIKAN: Mencegah audio bergema akibat race condition play()/pause()
   useEffect(() => {
-    if (activeMedia) {
-      setIsFinished(false);
-      
-      // Memutar media secara manual dengan delay kecil untuk mencegah bentrok
-      const playTimer = setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.currentTime = 0;
-          videoRef.current.play().catch(e => console.log("Video Play Error:", e));
-        }
-        if (audioRef.current) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(e => console.log("Audio Play Error:", e));
-        }
-      }, 50);
+    if (!activeMedia) return;
 
-      // CLEANUP: Mematikan paksa media jika jendela ditutup atau komponen berganti
-      return () => {
-        clearTimeout(playTimer);
-        if (videoRef.current) videoRef.current.pause();
-        if (audioRef.current) audioRef.current.pause();
-      };
-    }
+    let cancelled = false;
+    setIsFinished(false);
+
+    const videoEl = videoRef.current;
+    const audioEl = audioRef.current;
+
+    // Memutar media secara manual dengan delay kecil untuk mencegah bentrok
+    const playTimer = setTimeout(() => {
+      if (cancelled) return;
+
+      if (videoEl) {
+        videoEl.currentTime = 0;
+        videoEl.play().catch((e) => console.log("Video Play Error:", e));
+      }
+
+      if (audioEl) {
+        audioEl.currentTime = 0;
+        const playPromise = audioEl.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((e) => {
+            if (!cancelled) console.log("Audio Play Error:", e);
+          });
+        }
+      }
+    }, 50);
+
+    // CLEANUP: Mematikan & mereset total media sebelumnya
+    // agar Promise play() yang telat resolve tidak menyebabkan tumpang tindih (gema)
+    return () => {
+      cancelled = true;
+      clearTimeout(playTimer);
+
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.currentTime = 0;
+      }
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        // Paksa browser melepas buffer audio lama, bukan sekadar pause
+        audioEl.removeAttribute('src');
+        audioEl.load();
+      }
+    };
   }, [activeMedia]);
 
   if (!activeMedia) return null;
@@ -42,19 +66,19 @@ export default function MediaWindow() {
 
   const handleAudioEnd = () => {
     if (videoRef.current) {
-      videoRef.current.pause(); 
+      videoRef.current.pause();
     }
-    setIsFinished(true); 
+    setIsFinished(true);
   };
 
   const handleReplay = () => {
     setIsFinished(false);
     if (videoRef.current) {
-      videoRef.current.currentTime = 0; 
+      videoRef.current.currentTime = 0;
       videoRef.current.play();
     }
     if (audioRef.current) {
-      audioRef.current.currentTime = 0; 
+      audioRef.current.currentTime = 0;
       audioRef.current.play();
     }
   };
@@ -90,24 +114,23 @@ export default function MediaWindow() {
             </button>
           </div>
 
-          <div className="relative flex-1 bg-black flex items-center justify-center p-0"> 
-            
-            {/* ℹ️ PERBAIKAN: Atribut autoPlay DIHAPUS dari Video dan Audio */}
+          <div className="relative flex-1 bg-black flex items-center justify-center p-0">
+
             <video
               ref={videoRef}
               src={videoUrl}
-              loop 
+              loop
               muted
               playsInline
               preload="auto"
               className={`w-full h-full object-cover relative z-10 transition-opacity duration-300 ${isFinished ? 'opacity-30' : 'opacity-100'}`}
               onError={(e) => e.target.style.display = 'none'}
             />
-            
+
             <audio
               ref={audioRef}
               src={audioUrl}
-              onEnded={handleAudioEnd} 
+              onEnded={handleAudioEnd}
               className="hidden"
             />
 
