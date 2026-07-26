@@ -7,106 +7,69 @@ import useACILMStore from '../../store/useACILMStore';
 // 📍 PUSAT PENGATURAN MEDIA (MANUAL MAPPING)
 // =====================================================================
 const MEDIA_MAP = {
-  // --- KOMPONEN INDOOR ---
-  'Saringan_Blower': {
-    video: '/media/videos/Saringan_Blower.mp4',
-    audio: '/media/audios/Saringan_Blower.mp3'
-  },
-  'Indoor_Evaporator_Fins': {
-    video: '/media/videos/Indoor_Evaporator_Fins.mp4',
-    audio: '/media/audios/Indoor_Evaporator_Fins.mp3'
-  },
-  'Indoor_Filter_L': {
-    video: '/media/videos/Indoor_Filter_L.mp4',
-    audio: '/media/audios/Indoor_Filter_L.mp3'
-  },
-  'Indoor_Filter_R': {
-    video: '/media/videos/Indoor_Filter_R.mp4',
-    audio: '/media/audios/Indoor_Filter_R.mp3'
-  },
-  'Indoor_PCB': {
-    video: '/media/videos/Indoor_PCB.mp4',
-    audio: '/media/audios/Indoor_PCB.mp3'
-  },
-  
-  // --- KOMPONEN OUTDOOR ---
-  'Outdoor_Condenser_Fins': {
-    video: '/media/videos/Outdoor_Condenser_Fins.mp4',
-    audio: '/media/audios/Outdoor_Condenser_Fins.mp3'
-  },
-  'Outdoor_Fan_Blade': {
-    video: '/media/videos/Outdoor_Fan_Blade.mp4',
-    audio: '/media/audios/Outdoor_Fan_Blade.mp3'
-  },
-  'Outdoor_Compressor': {
-    video: '/media/videos/Outdoor_Compressor.mp4',
-    audio: '/media/audios/Outdoor_Compressor.mp3'
-  },
-  'Outdoor_Expansion_Valve': {
-    video: '/media/videos/Outdoor_Expansion_Valve.mp4',
-    audio: '/media/audios/Outdoor_Expansion_Valve.mp3'
-  }
+  'Saringan_Blower': { video: '/media/videos/Saringan_Blower.mp4', audio: '/media/audios/Saringan_Blower.mp3' },
+  'Indoor_Evaporator_Fins': { video: '/media/videos/Indoor_Evaporator_Fins.mp4', audio: '/media/audios/Indoor_Evaporator_Fins.mp3' },
+  'Indoor_Filter_L': { video: '/media/videos/Indoor_Filter_L.mp4', audio: '/media/audios/Indoor_Filter_L.mp3' },
+  'Indoor_Filter_R': { video: '/media/videos/Indoor_Filter_R.mp4', audio: '/media/audios/Indoor_Filter_R.mp3' },
+  'Indoor_PCB': { video: '/media/videos/Indoor_PCB.mp4', audio: '/media/audios/Indoor_PCB.mp3' },
+  'Outdoor_Condenser_Fins': { video: '/media/videos/Outdoor_Condenser_Fins.mp4', audio: '/media/audios/Outdoor_Condenser_Fins.mp3' },
+  'Outdoor_Fan_Blade': { video: '/media/videos/Outdoor_Fan_Blade.mp4', audio: '/media/audios/Outdoor_Fan_Blade.mp3' },
+  'Outdoor_Compressor': { video: '/media/videos/Outdoor_Compressor.mp4', audio: '/media/audios/Outdoor_Compressor.mp3' },
+  'Outdoor_Expansion_Valve': { video: '/media/videos/Outdoor_Expansion_Valve.mp4', audio: '/media/audios/Outdoor_Expansion_Valve.mp3' }
 };
+
+// =====================================================================
+// 🚀 PERBAIKAN ABSOLUT: SINGLETON AUDIO ENGINE
+// Dibuat DI LUAR komponen React. Ini memastikan HANYA ADA 1 AUDIO 
+// di seluruh aplikasi, mencegah gema 100% secara fisik.
+// =====================================================================
+const globalAudio = new Audio();
 
 export default function MediaWindow() {
   const { activeMedia, setActiveMedia } = useACILMStore();
   const videoRef = useRef(null);
-  
-  // ℹ️ PERBAIKAN 1: Kita menggunakan Ref murni untuk Audio, bukan tag HTML lagi
-  const audioEngineRef = useRef(null); 
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
     if (activeMedia && MEDIA_MAP[activeMedia]) {
       setIsFinished(false);
-      
-      // Bersihkan dan reset video
+
+      // 1. Hentikan paksa global audio yang mungkin sedang berjalan
+      globalAudio.pause();
+      // 2. Timpa dengan jalur audio yang baru
+      globalAudio.src = MEDIA_MAP[activeMedia].audio;
+      globalAudio.load();
+
+      // Reset video
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
       }
 
-      // HANCURKAN audio lama dari memori jika masih ada
-      if (audioEngineRef.current) {
-        audioEngineRef.current.pause();
-        audioEngineRef.current.src = "";
-        audioEngineRef.current = null;
-      }
-
-      // ℹ️ PERBAIKAN 2: Menciptakan Audio murni berbasis JavaScript
-      const newAudio = new Audio(MEDIA_MAP[activeMedia].audio);
-      
-      // Saat audio selesai, beritahu React untuk memunculkan tombol Replay
-      newAudio.onended = () => {
+      // Sensor jika audio selesai
+      globalAudio.onended = () => {
         if (videoRef.current) videoRef.current.pause();
         setIsFinished(true);
       };
-      
-      // Simpan ke dalam Ref
-      audioEngineRef.current = newAudio;
 
-      // Mainkan media secara bersamaan
+      // Mainkan media secara sinkron
       const playTimer = setTimeout(() => {
-        if (videoRef.current) videoRef.current.play().catch(e => console.log("Video Error:", e));
-        if (audioEngineRef.current) audioEngineRef.current.play().catch(e => console.log("Audio Error:", e));
+        if (videoRef.current) videoRef.current.play().catch(e => console.log("Video Play Error:", e));
+        globalAudio.play().catch(e => console.log("Audio Play Error:", e));
       }, 150);
 
-      // ℹ️ CLEANUP 100% AMAN
+      // CLEANUP SAAT JENDELA DITUTUP / TRANSISI
       return () => {
         clearTimeout(playTimer);
         
-        // Matikan Video
+        // Kosongkan dan matikan Global Audio agar bungkam 100%
+        globalAudio.pause();
+        globalAudio.removeAttribute('src'); 
+        
         if (videoRef.current) {
           videoRef.current.pause();
-          videoRef.current.removeAttribute('src'); 
-          videoRef.current.load(); 
-        }
-        
-        // Binasakan Audio Engine dari memori Browser
-        if (audioEngineRef.current) {
-          audioEngineRef.current.pause();
-          audioEngineRef.current.src = ""; 
-          audioEngineRef.current = null;
+          videoRef.current.removeAttribute('src');
+          videoRef.current.load();
         }
       };
     }
@@ -119,24 +82,21 @@ export default function MediaWindow() {
   const handleReplay = () => {
     setIsFinished(false);
     
-    // Ulang Video
+    // Putar ulang Video
     if (videoRef.current) {
       videoRef.current.currentTime = 0; 
       videoRef.current.play();
     }
     
-    // Ulang Audio Engine
-    if (audioEngineRef.current) {
-      audioEngineRef.current.currentTime = 0; 
-      audioEngineRef.current.play();
-    }
+    // Putar ulang Global Audio
+    globalAudio.currentTime = 0; 
+    globalAudio.play();
   };
 
   return (
     <AnimatePresence>
       {activeMedia && (
         <motion.div
-          // ℹ️ PERBAIKAN 3: Menambahkan 'key' agar Framer Motion tidak menggandakan jendela saat di-spam klik
           key="media-modal-window" 
           drag
           dragMomentum={false}
@@ -172,13 +132,12 @@ export default function MediaWindow() {
                 <h3 className="text-amber-500 font-bold text-sm mb-1">Media Belum Didaftarkan</h3>
                 <p className="text-slate-400 text-[10px]">
                   Silakan buka <code className="bg-slate-800 px-1 py-0.5 rounded text-primary">MediaWindow.jsx</code><br/> 
-                  dan tambahkan <code className="bg-slate-800 px-1 py-0.5 rounded text-white">'{activeMedia}'</code> ke dalam daftar MEDIA_MAP.
+                  dan tambahkan komponen ke dalam daftar MEDIA_MAP.
                 </p>
               </div>
             ) : (
               <>
                 <video
-                  // ℹ️ PERBAIKAN 4: Menambahkan key dinamis agar video dipaksa direfresh oleh React
                   key={`video-${activeMedia}`} 
                   ref={videoRef}
                   src={mediaSource.video}
@@ -187,11 +146,6 @@ export default function MediaWindow() {
                   playsInline
                   className={`w-full h-full object-cover relative z-10 transition-opacity duration-300 ${isFinished ? 'opacity-30' : 'opacity-100'}`}
                 />
-                
-                {/* 
-                  ℹ️ PERBAIKAN 5: Tag <audio> KITA HAPUS SEPENUHNYA DARI SINI!
-                  Karena sekarang audionya diurus oleh JavaScript di latar belakang.
-                */}
 
                 <AnimatePresence>
                   {isFinished && (
