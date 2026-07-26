@@ -31,7 +31,41 @@ export default function MediaWindow() {
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
-    setIsFinished(false);
+    if (activeMedia && MEDIA_MAP[activeMedia]) {
+      setIsFinished(false);
+
+      // 1. Hentikan paksa global audio yang mungkin sedang berjalan
+      globalAudio.pause();
+      // 2. Timpa dengan jalur audio yang baru
+      globalAudio.src = MEDIA_MAP[activeMedia].audio;
+      globalAudio.load();
+
+      // Reset video
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+
+      // Sensor jika audio selesai
+      globalAudio.onended = () => {
+        if (videoRef.current) videoRef.current.pause();
+        setIsFinished(true);
+      };
+
+      // CLEANUP SAAT JENDELA DITUTUP / TRANSISI
+      return () => {
+        
+        // Kosongkan dan matikan Global Audio agar bungkam 100%
+        globalAudio.pause();
+        globalAudio.removeAttribute('src'); 
+        
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute('src');
+          videoRef.current.load();
+        }
+      };
+    }
   }, [activeMedia]);
 
   if (!activeMedia) return null;
@@ -85,51 +119,47 @@ export default function MediaWindow() {
           {/* Area Konten Media */}
           <div className="relative flex-1 bg-black flex items-center justify-center p-0"> 
             
-            {/* VIDEO: Tetap di-loop, tapi akan meredup jika penjelasan sudah selesai */}
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              autoPlay
-              loop 
-              muted
-              playsInline
-              preload="auto"
-              className={`w-full h-full object-cover relative z-10 transition-opacity duration-300 ${isFinished ? 'opacity-30' : 'opacity-100'}`}
-              onError={(e) => e.target.style.display = 'none'}
-            />
-            
-            {/* AUDIO: Tidak di-loop, memanggil handleAudioEnd saat durasi habis */}
-            <audio
-              ref={audioRef}
-              src={audioUrl}
-              autoPlay
-              onEnded={handleAudioEnd} 
-              className="hidden"
-            />
+            {!mediaSource ? (
+              <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-900 w-full h-full">
+                <AlertCircle className="w-10 h-10 text-amber-500 mb-3" />
+                <h3 className="text-amber-500 font-bold text-sm mb-1">Media Belum Didaftarkan</h3>
+                <p className="text-slate-400 text-[10px]">
+                  Silakan buka <code className="bg-slate-800 px-1 py-0.5 rounded text-primary">MediaWindow.jsx</code><br/> 
+                  dan tambahkan komponen ke dalam daftar MEDIA_MAP.
+                </p>
+              </div>
+            ) : (
+              <>
+                <video
+                  key={`video-${activeMedia}`} 
+                  ref={videoRef}
+                  src={mediaSource.video}
+                  loop 
+                  muted
+                  playsInline
+                  onLoadedData={() => {
+                    if (videoRef.current) videoRef.current.play().catch(e => console.log("Video Play Error:", e));
+                    globalAudio.play().catch(e => console.log("Audio Play Error:", e));
+                  }}
+                  className={`w-full h-full object-cover relative z-10 transition-opacity duration-300 ${isFinished ? 'opacity-30' : 'opacity-100'}`}
+                />
 
-            {/* ℹ️ UI BARU: Tombol Putar Ulang (Hanya muncul jika isFinished === true) */}
-            <AnimatePresence>
-              {isFinished && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  onClick={handleReplay}
-                  className="absolute z-20 flex flex-col items-center gap-2 text-white bg-slate-900/80 p-4 rounded-xl backdrop-blur-sm border border-slate-700 hover:bg-slate-700 hover:border-primary transition-all shadow-level-2 pointer-events-auto"
-                >
-                  <RotateCcw className="w-8 h-8 text-primary" />
-                  <span className="text-[10px] font-bold tracking-wider uppercase">Putar Ulang</span>
-                </motion.button>
-              )}
-            </AnimatePresence>
-
-            {/* Pesan Bantuan jika file media tidak ditemukan */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-slate-600 text-[10px] text-center px-4">
-              <PlayCircle className="w-8 h-8 mb-2 opacity-20" />
-              Menunggu Media...<br/>
-              Simpan video di: <code className="text-slate-500">public/media/videos/{activeMedia}.mp4</code><br/>
-              Simpan audio di: <code className="text-slate-500">public/media/audios/{activeMedia}.mp3</code>
-            </div>
+                <AnimatePresence>
+                  {isFinished && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      onClick={handleReplay}
+                      className="absolute z-20 flex flex-col items-center gap-2 text-white bg-slate-900/80 p-4 rounded-xl backdrop-blur-sm border border-slate-700 hover:bg-slate-700 hover:border-primary transition-all shadow-level-2 pointer-events-auto"
+                    >
+                      <RotateCcw className="w-8 h-8 text-primary" />
+                      <span className="text-[10px] font-bold tracking-wider uppercase">Putar Ulang</span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
           </div>
         </motion.div>
       )}
