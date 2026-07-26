@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// ℹ️ PERBAIKAN: Menambahkan ikon RotateCcw untuk tombol "Putar Ulang"
 import { X, PlayCircle, Move, RotateCcw } from 'lucide-react';
 import useACILMStore from '../../store/useACILMStore';
 
@@ -9,12 +8,33 @@ export default function MediaWindow() {
   const videoRef = useRef(null);
   const audioRef = useRef(null);
   
-  // State untuk melacak apakah audio penjelasan sudah selesai diputar
   const [isFinished, setIsFinished] = useState(false);
 
-  // Reset status menjadi "belum selesai" jika user membuka komponen yang berbeda
+  // ℹ️ PERBAIKAN BUG AUDIO: Mengontrol pemutaran audio secara manual
   useEffect(() => {
     setIsFinished(false);
+
+    if (activeMedia && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      
+      // Memutar audio menggunakan JavaScript (Mencegah pemutaran ganda)
+      const playPromise = audioRef.current.play();
+      
+      // Menangkap error jika browser memblokir autoplay sebelum user berinteraksi
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.warn("Autoplay audio tertunda:", error);
+        });
+      }
+    }
+
+    // CLEANUP: Mematikan audio secara paksa saat jendela ditutup
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
   }, [activeMedia]);
 
   if (!activeMedia) return null;
@@ -22,23 +42,21 @@ export default function MediaWindow() {
   const videoUrl = `/media/videos/${activeMedia}.mp4`;
   const audioUrl = `/media/audios/${activeMedia}.mp3`;
 
-  // ℹ️ FUNGSI BARU: Dieksekusi otomatis SAAT AUDIO SELESAI
   const handleAudioEnd = () => {
     if (videoRef.current) {
-      videoRef.current.pause(); // Hentikan looping video
+      videoRef.current.pause(); 
     }
-    setIsFinished(true); // Memunculkan tombol Putar Ulang
+    setIsFinished(true); 
   };
 
-  // ℹ️ FUNGSI BARU: Untuk mengulang media dari awal
   const handleReplay = () => {
     setIsFinished(false);
     if (videoRef.current) {
-      videoRef.current.currentTime = 0; // Kembalikan video ke detik 0
+      videoRef.current.currentTime = 0; 
       videoRef.current.play();
     }
     if (audioRef.current) {
-      audioRef.current.currentTime = 0; // Kembalikan audio ke detik 0
+      audioRef.current.currentTime = 0; 
       audioRef.current.play();
     }
   };
@@ -55,7 +73,7 @@ export default function MediaWindow() {
           exit={{ opacity: 0, scale: 0.8 }}
           className="fixed z-[999] flex flex-col bg-surface/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] pointer-events-auto resize overflow-hidden min-w-[300px] min-h-[200px] w-[400px] h-[300px]"
         >
-          {/* Header (Gagang Jendela) */}
+          {/* Header */}
           <div
             className="flex items-center justify-between p-2 bg-slate-800 border-b border-slate-700 cursor-move"
             title="Tahan dan geser jendela"
@@ -78,7 +96,6 @@ export default function MediaWindow() {
           {/* Area Konten Media */}
           <div className="relative flex-1 bg-black flex items-center justify-center p-0"> 
             
-            {/* VIDEO: Tetap di-loop, tapi akan meredup jika penjelasan sudah selesai */}
             <video
               ref={videoRef}
               src={videoUrl}
@@ -91,16 +108,15 @@ export default function MediaWindow() {
               onError={(e) => e.target.style.display = 'none'}
             />
             
-            {/* AUDIO: Tidak di-loop, memanggil handleAudioEnd saat durasi habis */}
+            {/* ℹ️ PERBAIKAN: Atribut autoPlay DIHAPUS dari tag audio */}
             <audio
               ref={audioRef}
               src={audioUrl}
-              autoPlay
               onEnded={handleAudioEnd} 
               className="hidden"
             />
 
-            {/* ℹ️ UI BARU: Tombol Putar Ulang (Hanya muncul jika isFinished === true) */}
+            {/* Tombol Putar Ulang */}
             <AnimatePresence>
               {isFinished && (
                 <motion.button
@@ -116,7 +132,7 @@ export default function MediaWindow() {
               )}
             </AnimatePresence>
 
-            {/* Pesan Bantuan jika file media tidak ditemukan */}
+            {/* Pesan Bantuan */}
             <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-slate-600 text-[10px] text-center px-4">
               <PlayCircle className="w-8 h-8 mb-2 opacity-20" />
               Menunggu Media...<br/>
