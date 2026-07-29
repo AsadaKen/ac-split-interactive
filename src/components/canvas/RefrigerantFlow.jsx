@@ -114,9 +114,9 @@ export default function RefrigerantFlow() {
 
   const pipeColors = {
     Kompresi: 0xff1111,   // Merah Neon (Gas Panas Tekanan Tinggi)
-    Kondensasi: 0xff8800, // Oranye Terang (Cair Panas)
-    Ekspansi: 0x0044ff,   // Biru Elektrik (Cair Dingin Tekanan Rendah)
-    Evaporasi: 0x00ffff
+    Kondensasi: 0xffd700, // Oranye Terang (Cair Panas)
+    Ekspansi: 0x00008b,   // Biru Elektrik (Cair Dingin Tekanan Rendah)
+    Evaporasi: 0x008080,
   };
 
   const temperatures = {

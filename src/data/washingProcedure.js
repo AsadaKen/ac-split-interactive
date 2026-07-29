@@ -18,7 +18,7 @@ export const INDOOR_COMPONENTS_LIST = [
 ];
 
 export const OUTDOOR_COMPONENTS_LIST = [
-  'Outdoor_Casing_Top', 'Outdoor_Casing_Left', 'Outdoor_Casing_Front', 
+  'Outdoor_Casing_Top', 'Outdoor_Casing_Left', 'Outdoor_Casing_Front', 'Outdoor_Casing_Body',
   'Outdoor_Fan_Blade', 'Outdoor_Condenser_Fins', 'Outdoor_Compressor', 'Outdoor_Expansion_Valve'
 ];
 

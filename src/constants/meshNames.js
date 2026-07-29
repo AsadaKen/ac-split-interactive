@@ -1,5 +1,7 @@
 // Memasukkan semua pecahan casing agar menjadi transparan saat X-Ray aktif
 export const MESH_CASING = [
+  'Outdoor_Casing_Back',
+  'Outdoor_Casing_Cap',
   'Diorama_Casing_Wall',
   'Diorama_Casing_Isi',
   'Indoor_Casing_Front',
@@ -8,7 +10,6 @@ export const MESH_CASING = [
   'Outdoor_Casing_Top',
   'Outdoor_Casing_Left',
   'Outdoor_Casing_Front',
-  'Outdoor_Casing_Body',
   'Outdoor_Casing_ACC',
   'Pipe_LowPressure',
   'Pipe_SuctionLine'
